@@ -8,15 +8,14 @@ import time
 import pymysql
 
 #连接数据库
-db = pymysql.connect(host='localhost',
-                     port=3306,
-                     user='root',
-                     passwd='Aa136549.',
-                     database='client_info',
-                     charset='utf8')
-
-#获取游标
-cur = db.cursor()
+def connection():
+    db = pymysql.connect(host='localhost',
+                         port=3306,
+                         user='root',
+                         passwd='Aa136549.',
+                         database='client_info',
+                         charset='utf8')
+    return db
 
 # 设置主机地址
 HOST = '0.0.0.0'
@@ -38,6 +37,8 @@ s.listen(10)
 #处理客户端请求函数
 #未分表分库的处理客户端请求函数
 def handle1(c):
+    db = connection()
+    cur = db.cursor()
     while True:
         data = c.recv(1024).decode()
         if data.split(' ')[0] == 'Q':
@@ -45,6 +46,7 @@ def handle1(c):
         elif data.split(' ')[0] == 'L':
             sql = "select * from customer_info where username=%s and password=%s"
             res = cur.execute(sql,[data.split(' ')[2],data.split(' ')[3]])
+            cur.fetchall()
             if res:
                 c.send(b'Log in succeeded')
             else:
@@ -54,9 +56,8 @@ def handle1(c):
                 sql = "update customer_info set book_date=curdate() where id=%s"
                 cur.execute(sql,[data.split(' ')[1]])
                 db.commit()
-            except Exception:
-                print('Unkown Error')
-                db.rollback()
+            except Exception as e:
+                print(e)
             c.send(b'Modify information succeeded')
         else:
             continue
@@ -64,6 +65,8 @@ def handle1(c):
 
 # 水平分表后的处理客户端请求函数
 def handle2(c):
+    db = connection()
+    cur = db.cursor()
     while True:
         data = c.recv(1024).decode()
         db_num = int(data.split(' ')[1]) // 300000 + 1
@@ -79,7 +82,7 @@ def handle2(c):
                 c.send(b'Username or Password wrong')
         elif data.split(' ')[0] == 'M':
             try:
-                sql = "update (a) set book_date=curdate() where id={b}".format(a = table_name,b = int(data.split(' ')[1]))
+                sql = "update {a} set book_date=curdate() where id={b}".format(a = table_name,b = data.split(' ')[1])
                 cur.execute(sql)
                 db.commit()
             except Exception:
@@ -91,6 +94,8 @@ def handle2(c):
     c.close()
 # 处理垂直分表后处理客户端需求函数
 def handle3(c):
+    db = connection()
+    cur = db.cursor()
     while True:
         data = c.recv(1024).decode()
         if data.split(' ')[0] == 'Q':
@@ -107,8 +112,8 @@ def handle3(c):
                 sql = "update ver_table_2 set book_date=curdate() where id=%s"
                 cur.execute(sql,[data.split(' ')[1]])
                 db.commit()
-            except Exception:
-                print('Unkown Error')
+            except Exception as e:
+                print(e)
                 db.rollback()
             c.send(b'Modify information succeeded')
         else:
@@ -118,7 +123,7 @@ def handle3(c):
 process_list = []
 c_list = []
 # 同时接收10个客户端请求 生成监听套接字并作为参数传入客户端处理函数
-for i in range(1):
+for i in range(10):
     c, addr = s.accept()
     print(i+1,'connect from', addr)
     c_list.append(c)

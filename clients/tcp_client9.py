@@ -39,3 +39,6 @@ msg = 'Q 2599999'
 s.send(msg.encode())
 data2 = s.recv(1024)
 print(data2.decode())
+
+s.close()
+
