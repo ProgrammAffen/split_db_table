@@ -71,7 +71,7 @@ def handle2(c):
         if data.split(' ')[0] == 'Q':
             break
         elif data.split(' ')[0] == 'L':
-            sql = "select * from ver_table_1 where username='{b}' and password='{c}'".format(a = table_name,b = data.split(' ')[2],c = data.split(' ')[3])
+            sql = "select * from {a} where username='{b}' and password='{c}'".format(a = table_name,b = data.split(' ')[2],c = data.split(' ')[3])
             res = cur.execute(sql)
             if res:
                 c.send(b'Log in succeeded')
@@ -79,7 +79,7 @@ def handle2(c):
                 c.send(b'Username or Password wrong')
         elif data.split(' ')[0] == 'M':
             try:
-                sql = "update ver_table_2 set book_date=curdate() where id={b}".format(b = int(data.split(' ')[1]) )
+                sql = "update (a) set book_date=curdate() where id={b}".format(a = table_name,b = int(data.split(' ')[1]))
                 cur.execute(sql)
                 db.commit()
             except Exception:
@@ -96,7 +96,7 @@ def handle3(c):
         if data.split(' ')[0] == 'Q':
             break
         elif data.split(' ')[0] == 'L':
-            sql = "select * from customer_info where username=%s and password=%s"
+            sql = "select * from ver_table_1 where username=%s and password=%s"
             res = cur.execute(sql,[data.split(' ')[2],data.split(' ')[3]])
             if res:
                 c.send(b'Log in succeeded')
@@ -104,7 +104,7 @@ def handle3(c):
                 c.send(b'Username or Password wrong')
         elif data.split(' ')[0] == 'M':
             try:
-                sql = "update customer_info set book_date=curdate() where id=%s"
+                sql = "update ver_table_2 set book_date=curdate() where id=%s"
                 cur.execute(sql,[data.split(' ')[1]])
                 db.commit()
             except Exception:
@@ -120,9 +120,9 @@ c_list = []
 # 同时接收10个客户端请求 生成监听套接字并作为参数传入客户端处理函数
 for i in range(1):
     c, addr = s.accept()
-    print('connect from', addr)
+    print(i+1,'connect from', addr)
     c_list.append(c)
-    p = Process(target=handle3, args=(c,))
+    p = Process(target=handle1, args=(c,))
     # 将10个客户端子进程放进process_list中等待执行
     process_list.append(p)
 #设置阻塞 等待10个客户端全部连接完成
